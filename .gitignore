@@ -1,0 +1,4 @@
+APPLICATIONS_SPEC.md
+.env
+.venv/
+__pycache__/
