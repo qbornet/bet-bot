@@ -88,10 +88,7 @@ class BettingBot(commands.Bot):
                 prev_match = storage.get_match(match_id)
                 
                 # Run sync scraper in thread pool to avoid blocking
-                updated_match = await loop.run_in_executor(
-                    None, 
-                    lambda: scraper.scrape_match(match_id, is_background=True)
-                )
+                updated_match = await asyncio.to_thread(scraper.scrape_match, match_id)
                 
                 if updated_match:
                     # Store previous scores for settlement tracking

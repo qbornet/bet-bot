@@ -3,11 +3,10 @@
 import re
 import time
 import random
-import requests
 from datetime import datetime
 from typing import Optional, Dict
 from bs4 import BeautifulSoup
-
+from curl_cffi import requests
 
 class CrossBetScraper:
     """Scraper for cross.bet match data with intelligent rate limiting."""
@@ -23,7 +22,13 @@ class CrossBetScraper:
     ]
     
     def __init__(self):
-        self.session = requests.Session()
+        self.session = requests.Session(impersonate="chrome120")
+        proxies = {
+            "http": "http://yzhomyyf:ywbo1ca7ngr0@31.59.20.176:6754/",
+            "https": "http://yzhomyyf:ywbo1ca7ngr0@31.59.20.176:6754/"
+        }
+        self.session.proxies.update(proxies)
+
         self.last_request_time = 0
         self.min_interval = 25  # Minimum 25 seconds
         self.max_interval = 35  # Maximum 35 seconds
@@ -33,7 +38,6 @@ class CrossBetScraper:
     def _get_headers(self) -> Dict:
         """Get random headers."""
         return {
-            "User-Agent": random.choice(self.USER_AGENTS),
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.5",
             "Accept-Encoding": "gzip, deflate, br",

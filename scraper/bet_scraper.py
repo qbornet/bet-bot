@@ -3,12 +3,11 @@
 import re
 import time
 import random
-import requests
 import json
 from datetime import datetime
 from typing import Optional, Dict
 from urllib.parse import urlparse
-
+from curl_cffi import requests
 
 class BetScraper:
     """Unified scraper supporting multiple betting sites."""
@@ -33,8 +32,13 @@ class BetScraper:
     ]
     
     def __init__(self):
-        self.session = requests.Session()
+        self.session = requests.Session(impersonate="chrome120")
         # Configure session to automatically handle compression
+        proxies={
+            "http": "http://yzhomyyf:ywbo1ca7ngr0@31.59.20.176:6754/",
+            "https": "http://yzhomyyf:ywbo1ca7ngr0@31.59.20.176:6754/"
+        }
+        self.session.proxies.update(proxies)
         self.session.headers.update({
             'Accept-Encoding': 'gzip, deflate, br'
         })
@@ -46,7 +50,6 @@ class BetScraper:
     
     def _get_headers(self) -> Dict:
         return {
-            "User-Agent": random.choice(self.USER_AGENTS),
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.5",
             "Accept-Encoding": "gzip, deflate, br",

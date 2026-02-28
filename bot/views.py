@@ -2,7 +2,7 @@
 
 import discord
 from discord.ui import Button, Modal, TextInput, View
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from utils import storage
 
@@ -64,7 +64,16 @@ class BetAmountModal(Modal):
                 ephemeral=True
             )
             return
-        
+
+        if "betting_closes_at" in match:
+            closes_at = datetime.fromisoformat(match["betting_closes_at"])
+            if datetime.now() > closes_at:
+                await interaction.response.send_message(
+                    "❌ **Betting is closed!** The 2-minute window for this match has expired.",
+                    ephemeral=True
+                )
+                return
+
         # Check if user already bet on this map
         existing_bet = storage.get_user_bet_for_map(
             user_id, self.match_id, match["map_number"]
@@ -117,7 +126,7 @@ class MatchView(View):
     """View with buttons for match betting."""
     
     def __init__(self, match_id: str, team_a: str, team_b: str, odds_a: float, odds_b: float, map_number: int):
-        super().__init__(timeout=300)  # 5 minute timeout
+        super().__init__(timeout=120)  # 2 minute timeout
         self.match_id = match_id
         self.team_a = team_a
         self.team_b = team_b
@@ -133,6 +142,12 @@ class MatchView(View):
         """Disable buttons when view times out."""
         for child in self.children:
             child.disabled = True
+
+        if hasattr(self, 'message'):
+            try:
+                await self.message.edit(view=self)
+            except discord.HTTPException:
+                pass
 
 
 class BetButton(Button):
@@ -160,6 +175,16 @@ class BetButton(Button):
                 ephemeral=True
             )
             return
+
+        # Check if betting is closes.
+        if "betting_closes_at" in match:
+            closes_at = datetime.fromisoformat(match["betting_closes_at"])
+            if datetime.now() > closes_at:
+                await interaction.response.send_message(
+                    "❌ **Betting is closed!** The 2-minute window for this match has expired.",
+                    ephemeral=True
+                )
+                return
         
         existing_bet = storage.get_user_bet_for_map(
             user_id, self.match_id, match["map_number"]

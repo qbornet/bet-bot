@@ -1,6 +1,8 @@
 """Discord slash commands for the betting bot."""
 
+import asyncio
 import discord
+from datetime import datetime, timedelta
 from discord import app_commands
 from discord.ext import commands
 import os
@@ -34,7 +36,7 @@ class BettingCommands(commands.Cog):
         await interaction.response.defer(thinking=True)
         
         # Scrape match data
-        match_data = scrape_any(match_id)
+        match_data = await asyncio.to_thread(scrape_any, match_id)
         
         if not match_data:
             await interaction.followup.send(
@@ -45,6 +47,15 @@ class BettingCommands(commands.Cog):
         
         # Use the real match_id from the data in case a URL was passed
         real_match_id = match_data["match_id"]
+
+        existing_match = storage.get_match(real_match_id)
+
+        # If match already exists and haska deadline, keep the old deadline.
+        if existing_match and "betting_closes_at" in existing_match:
+            match_data["betting_closes_at"] = existing_match["betting_closes_at"]
+        else:
+            closes_at = datetime.now() + timedelta(minutes=2)
+            match_data["betting_closes_at"] = closes_at.isoformat()
         
         # Save match to storage
         storage.save_match(real_match_id, match_data)
@@ -102,6 +113,15 @@ class BettingCommands(commands.Cog):
                 value=f"First to 2 maps wins",
                 inline=False
             )
+        if "betting_closes_at" in match_data:
+            closes_at_dt = datetime.fromisoformat(match_data["betting_closes_at"])
+            unix_timestamp = int(closes_at_dt.timestamp())
+
+            embed.add_field(
+                name="⏳ Betting Closes",
+                value= f"<t:{unix_timestamp}:R>",
+                inline=False
+            )
         
         if existing_bet:
             embed.add_field(
@@ -112,7 +132,7 @@ class BettingCommands(commands.Cog):
         
         # Create view with buttons (disable if already bet)
         if existing_bet:
-            view = None
+            await interaction.followup.send(embed=embed)
         else:
             view = MatchView(
                 match_id,
@@ -122,8 +142,8 @@ class BettingCommands(commands.Cog):
                 match_data["odds_b"],
                 match_data["map_number"]
             )
-        
-        await interaction.followup.send(embed=embed, view=view)
+            message = await interaction.followup.send(embed=embed, view=view, wait=True)
+            view.message = message
     
     @app_commands.command(name="bet", description="Place a bet on a match")
     @app_commands.describe(
@@ -164,18 +184,32 @@ class BettingCommands(commands.Cog):
         # Get match data
         match = storage.get_match(match_id)
         if not match:
-            # Try to scrape
-            match = scrape_any(match_id)
-            if match:
-                match_id = match["match_id"] # Use real ID
-                storage.save_match(match_id, match)
+            # Try to scrape (they probably passed a URL)
+            fresh_match = await asyncio.to_thread(scrape_any, match_id)
+
+            if fresh_match:
+                real_match_id = fresh_match["match_id"]
+
+                # Check if this match ALREADY exists under its real ID!
+                existing_match = storage.get_match(real_match_id)
+
+                if existing_match:
+                    # It exists! Keep the old deadline.
+                    match = existing_match
+                    match_id = real_match_id
+                else:
+                    # It's actually a brand new match. Give it 2 minutes.
+                    match = fresh_match
+                    match_id = real_match_id
+                    match["betting_closes_at"] = (datetime.now() + timedelta(minutes=2)).isoformat()
+                    storage.save_match(match_id, match)
             else:
                 await interaction.followup.send(
                     f"Could not find or parse match data for: {match_id}.",
                     ephemeral=True
                 )
                 return
-        
+
         # Determine which team
         if team.value == "a":
             team_name = match["team_a"]
