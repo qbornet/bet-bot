@@ -9,7 +9,14 @@
   outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs {
+            inherit system;
+            config = {
+                allowUnfree = true;
+            };
+        };
+
+        #nixpkgs.legacyPackages.${system};
         pythonPackages = pkgs.python312Packages;
       in
       {
@@ -20,6 +27,8 @@
             python312
             python312Packages.pip
             python312Packages.virtualenv
+            google-chrome
+            chromedriver
             git
           ];
 

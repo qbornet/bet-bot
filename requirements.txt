@@ -21,3 +21,9 @@ soupsieve==2.8.3
 typing_extensions==4.15.0
 urllib3==2.6.3
 yarl==1.22.0
+aiohttp>=3.9.0
+brotli>=1.0.9
+python-socketio<5.0.0
+websocket-client>=1.8.0
+selenium>=4.24.0
+selenium-stealth>=1.0.6

@@ -1,4 +1,6 @@
 APPLICATIONS_SPEC.md
+APPLICATIONS_PLAN.md
+pyrightconfig.json
 .env
 .venv/
 __pycache__/
