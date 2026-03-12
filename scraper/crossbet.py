@@ -1,6 +1,7 @@
 """Web scraper for cross.bet with rate limiting."""
 
 import re
+import os
 import time
 import random
 from datetime import datetime
@@ -24,8 +25,8 @@ class CrossBetScraper:
     def __init__(self):
         self.session = requests.Session(impersonate="chrome120")
         proxies = {
-            "http": "http://yzhomyyf:ywbo1ca7ngr0@31.59.20.176:6754/",
-            "https": "http://yzhomyyf:ywbo1ca7ngr0@31.59.20.176:6754/"
+            "http": os.environ['HTTP_PROXY'],
+            "https": os.environ['HTTP_PROXY'],
         }
         self.session.proxies.update(proxies)
 
